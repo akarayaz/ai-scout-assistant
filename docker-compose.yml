@@ -1,0 +1,30 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: ai_scout_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: scout
+      POSTGRES_PASSWORD: scout_dev_password
+      POSTGRES_DB: ai_scout
+    ports:
+      - "5432:5432"
+    volumes:
+      - ai_scout_pgdata:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  api:
+    build: .
+    container_name: ai_scout_api
+    restart: unless-stopped
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      # Inside the Docker network, Postgres is reachable at "db", not "localhost"
+      DATABASE_URL: postgresql://agent_readonly:agent_readonly_password@db:5432/ai_scout
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+volumes:
+  ai_scout_pgdata:

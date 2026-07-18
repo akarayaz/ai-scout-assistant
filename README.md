@@ -137,6 +137,22 @@ competition/season and inspect the event schema.
   on Kaggle. Not included in this repo (see `.gitignore`) - download
   separately per the setup steps above.
 
+## Evaluation
+
+The agent is tested against a fixed eval set (`eval_set.json`): 13 questions
+across simple facts, rate stats, bio lookups, filtered scouting queries,
+comparisons, similarity search, and trap questions that ask about data the
+database doesn't have - to verify the agent says so instead of inventing
+numbers. Checks are deterministic string matches; expected answers are
+grounded in independently verified season facts.
+
+```
+python run_eval.py
+```
+
+Current score: 13/13. Detailed per-question results are written to
+`eval_results.json`.
+
 ## Status
 
 - [x] Event ingestion pipeline (StatsBomb -> Postgres)
@@ -148,7 +164,7 @@ competition/season and inspect the event schema.
 - [x] Player similarity search (19-dim z-scored per-90 stat vectors,
       pgvector cosine similarity, exposed as an agent tool)
 - [x] Simple frontend (Streamlit)
-- [ ] Broader agent testing / eval set
+- [x] Agent eval set (13 questions incl. hallucination traps, 13/13 passing)
 - [ ] Multi-tenancy / auth (out of scope for now)
 
 Some fields (`progressive_passes`, `progressive_carries`, `touches_in_box`,

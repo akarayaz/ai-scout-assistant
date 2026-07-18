@@ -1,0 +1,145 @@
+[
+  {
+    "id": "simple_top_scorer",
+    "category": "simple",
+    "question": "Who scored the most goals in the 2015/16 Premier League season?",
+    "must_contain_any": [
+      "Kane"
+    ]
+  },
+  {
+    "id": "simple_vardy_goals",
+    "category": "simple",
+    "question": "How many goals did Jamie Vardy score?",
+    "must_contain_all": [
+      "24"
+    ]
+  },
+  {
+    "id": "simple_key_passes",
+    "category": "simple",
+    "question": "Who had the most key passes?",
+    "must_contain_any": [
+      "Özil",
+      "Ozil"
+    ]
+  },
+  {
+    "id": "rate_goals_per90",
+    "category": "rate",
+    "question": "Who had the best goals per 90 minutes among players with at least 450 minutes?",
+    "must_contain_any": [
+      "Agüero",
+      "Aguero"
+    ]
+  },
+  {
+    "id": "bio_vardy_age",
+    "category": "bio",
+    "question": "How old was Jamie Vardy at the start of the 2015/16 season?",
+    "must_contain_all": [
+      "28"
+    ]
+  },
+  {
+    "id": "bio_mahrez_foot",
+    "category": "bio",
+    "question": "What is Riyad Mahrez's preferred foot?",
+    "must_contain_any": [
+      "Left",
+      "left"
+    ]
+  },
+  {
+    "id": "filter_young_left_pressers",
+    "category": "filter",
+    "question": "Which young left-footed midfielders had good pressing numbers?",
+    "must_contain_any": [
+      "Schlupp"
+    ]
+  },
+  {
+    "id": "comparison_vardy_kane",
+    "category": "comparison",
+    "question": "Compare Jamie Vardy and Harry Kane's goal-scoring per 90 minutes.",
+    "must_contain_all": [
+      "Vardy",
+      "Kane"
+    ]
+  },
+  {
+    "id": "similarity_kante",
+    "category": "similarity",
+    "question": "Which players are most similar to N'Golo Kante?",
+    "must_contain_any": [
+      "Gueye"
+    ]
+  },
+  {
+    "id": "similarity_mahrez",
+    "category": "similarity",
+    "question": "Find players with a similar playing style to Riyad Mahrez.",
+    "must_contain_any": [
+      "Sánchez",
+      "Sanchez",
+      "Mané",
+      "Mane",
+      "Sterling"
+    ]
+  },
+  {
+    "id": "trap_progressive_passes",
+    "category": "trap",
+    "question": "Who made the most progressive passes?",
+    "must_contain_any": [
+      "not available",
+      "not yet",
+      "isn't available",
+      "is not available",
+      "no data",
+      "implemented",
+      "don't have",
+      "do not have",
+      "not populated",
+      "not currently",
+      "can't answer",
+      "cannot answer",
+      "unable to",
+      "no reliable way",
+      "always 0"
+    ]
+  },
+  {
+    "id": "trap_aerial_duels",
+    "category": "trap",
+    "question": "Who won the most aerial duels?",
+    "must_contain_any": [
+      "not available",
+      "not yet",
+      "isn't available",
+      "is not available",
+      "no data",
+      "implemented",
+      "don't have",
+      "do not have",
+      "not populated",
+      "not currently",
+      "can't answer",
+      "cannot answer",
+      "unable to",
+      "no reliable way",
+      "always 0"
+    ]
+  },
+  {
+    "id": "trap_wrong_season",
+    "category": "trap",
+    "question": "How did Harry Kane perform in the 2016/17 season?",
+    "must_contain_any": [
+      "2015/16",
+      "2015-16",
+      "2015/2016",
+      "only"
+    ]
+  }
+]

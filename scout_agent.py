@@ -2,8 +2,8 @@
 scout_agent.py
 
 Core logic for the natural-language scouting agent: schema description,
-tool definition, SQL execution, and the Claude tool-use loop. Used by
-both agent.py (CLI) and app.py (FastAPI service).
+tool definitions, SQL execution, player-similarity search, and the Claude
+tool-use loop. Used by both agent.py (CLI) and app.py (FastAPI service).
 """
 
 import json
@@ -56,6 +56,12 @@ View: player_season_stats
 
 To join bio data with stats: player_season_stats.player = players.player
 
+For "players similar to X" / "playing style like X" questions, use the
+find_similar_players tool instead of writing SQL yourself. It compares
+z-score-normalized per-90 statistical profiles (cosine similarity) for
+players with > 450 minutes. Similarity is about statistical style, not
+reputation or transfer value - say so if relevant.
+
 Guidelines:
 - Only write SELECT queries.
 - Always add a reasonable minutes_played/appearances floor (e.g.
@@ -80,7 +86,30 @@ TOOLS = [
             },
             "required": ["query"],
         },
-    }
+    },
+    {
+        "name": "find_similar_players",
+        "description": (
+            "Find players whose statistical profile (per-90 metrics, z-score "
+            "normalized, cosine similarity) is most similar to a given player "
+            "in the Premier League 2015/16 season. Use for 'similar to X' / "
+            "'plays like X' questions. Only covers players with > 450 minutes."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "player_name": {
+                    "type": "string",
+                    "description": "Player name (partial names OK, e.g. 'Kante' or 'Vardy').",
+                },
+                "top_n": {
+                    "type": "integer",
+                    "description": "How many similar players to return (default 10).",
+                },
+            },
+            "required": ["player_name"],
+        },
+    },
 ]
 
 
@@ -103,6 +132,59 @@ def run_sql_query(engine, query: str) -> str:
             result = conn.execute(text(stripped))
             rows = [dict(row._mapping) for row in result]
         return json.dumps(rows, default=str)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+def find_similar_players(engine, player_name: str, top_n: int = 10) -> str:
+    top_n = max(1, min(int(top_n or 10), 25))
+    try:
+        with engine.connect() as conn:
+            # Resolve the (possibly partial) name against players that have
+            # an embedding. Unaccent isn't installed, so match loosely.
+            match = conn.execute(
+                text("""
+                    SELECT player FROM player_embeddings
+                    WHERE player ILIKE :pat
+                    ORDER BY length(player) ASC
+                    LIMIT 5
+                """),
+                {"pat": f"%{player_name}%"},
+            ).fetchall()
+
+            if not match:
+                return json.dumps({
+                    "error": f"No embedded player matched '{player_name}'. "
+                             "They may have played under 450 minutes, or the "
+                             "name is spelled differently in StatsBomb data."
+                })
+            if len(match) > 1:
+                names = [m.player for m in match]
+                return json.dumps({
+                    "ambiguous": True,
+                    "candidates": names,
+                    "note": "Multiple players matched - re-call with a more specific name.",
+                })
+
+            resolved = match[0].player
+            rows = conn.execute(
+                text("""
+                    SELECT e2.player, ps.team, ps.position, ps.total_minutes,
+                           ROUND((1 - (e1.embedding <=> e2.embedding))::numeric, 3) AS similarity
+                    FROM player_embeddings e1
+                    JOIN player_embeddings e2 ON e2.player != e1.player
+                    JOIN player_season_stats ps ON ps.player = e2.player
+                    WHERE e1.player = :name
+                    ORDER BY e1.embedding <=> e2.embedding
+                    LIMIT :n
+                """),
+                {"name": resolved, "n": top_n},
+            ).fetchall()
+
+        return json.dumps({
+            "query_player": resolved,
+            "similar": [dict(r._mapping) for r in rows],
+        }, default=str)
     except Exception as e:
         return json.dumps({"error": str(e)})
 
@@ -130,14 +212,23 @@ def ask(client, engine, question: str, return_queries: bool = False):
 
         tool_results = []
         for block in response.content:
-            if block.type == "tool_use" and block.name == "run_sql_query":
+            if block.type != "tool_use":
+                continue
+            if block.name == "run_sql_query":
                 query = block.input["query"]
                 executed_queries.append(query)
                 result = run_sql_query(engine, query)
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": result,
-                })
+            elif block.name == "find_similar_players":
+                name = block.input["player_name"]
+                top_n = block.input.get("top_n", 10)
+                executed_queries.append(f"[similarity] {name} (top {top_n})")
+                result = find_similar_players(engine, name, top_n)
+            else:
+                result = json.dumps({"error": f"Unknown tool: {block.name}"})
+            tool_results.append({
+                "type": "tool_result",
+                "tool_use_id": block.id,
+                "content": result,
+            })
 
         messages.append({"role": "user", "content": tool_results})
